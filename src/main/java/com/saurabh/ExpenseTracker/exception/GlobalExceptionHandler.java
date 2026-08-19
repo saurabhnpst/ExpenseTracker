@@ -50,4 +50,16 @@ public class GlobalExceptionHandler {
                 "errors", errors
         );
     }
+
+    @ExceptionHandler(Exception.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public Map<String, Object> handleGenericException(Exception ex) {
+
+        return Map.of(
+                "timestamp", LocalDateTime.now(),
+                "status", 500,
+                "error", "INTERNAL_SERVER_ERROR",
+                "message", "Something went wrong. Please try again later."
+        );
+    }
 }
