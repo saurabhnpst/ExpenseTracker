@@ -13,12 +13,16 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
+    private final JwtService jwtService;
+
     public AuthService(
             UserRepository userRepository,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            JwtService jwtService) {
 
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
     }
 
     public AuthResponse register(RegisterRequest request) {
@@ -45,5 +49,19 @@ public class AuthService {
                 savedUser.getUsername(),
                 "User registered successfully"
         );
+    }
+
+    public String login(String username, String password) {
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() ->
+                        new RuntimeException("Invalid username or password")
+                );
+
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new RuntimeException("Invalid username or password");
+        }
+
+        return jwtService.generateToken(user.getUsername());
     }
 }

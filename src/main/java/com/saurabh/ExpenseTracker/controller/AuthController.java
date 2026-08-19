@@ -1,5 +1,7 @@
 package com.saurabh.ExpenseTracker.controller;
-
+import com.saurabh.ExpenseTracker.dto.LoginRequest;
+import jakarta.validation.Valid;
+import java.util.Map;
 import com.saurabh.ExpenseTracker.dto.AuthResponse;
 import com.saurabh.ExpenseTracker.dto.RegisterRequest;
 import com.saurabh.ExpenseTracker.service.AuthService;
@@ -24,4 +26,20 @@ public class AuthController {
 
         return authService.register(request);
     }
+
+    @PostMapping("/login")
+    public Map<String, String> login(
+            @Valid @RequestBody LoginRequest request) {
+
+        String token = authService.login(
+                request.getUsername(),
+                request.getPassword()
+        );
+
+        return Map.of(
+                "token", token,
+                "message", "Login successful"
+        );
+    }
+
 }
