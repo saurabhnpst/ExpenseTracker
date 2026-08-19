@@ -1,9 +1,15 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom"
 
 import Login from "./pages/Login"
 import Register from "./pages/Register"
 import Dashboard from "./pages/Dashboard"
 import Expenses from "./pages/Expenses"
+import ProtectedRoute from "./components/ProtectedRoute"
 
 function App() {
   return (
@@ -14,18 +20,19 @@ function App() {
 
         <Route path="/register" element={<Register />} />
 
-        <Route path="/dashboard" element={<Dashboard />} />
-
-        <Route path="/expenses" element={<Expenses />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/expenses" element={<Expenses />} />
+        </Route>
 
         <Route
           path="/"
-          element={<Navigate to="/login" replace />}
+          element={<Navigate to="/dashboard" replace />}
         />
 
         <Route
           path="*"
-          element={<Navigate to="/login" replace />}
+          element={<Navigate to="/dashboard" replace />}
         />
 
       </Routes>
