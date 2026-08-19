@@ -2,7 +2,9 @@ package com.saurabh.ExpenseTracker.controller;
 
 import com.saurabh.ExpenseTracker.dto.CategoryRequest;
 import com.saurabh.ExpenseTracker.dto.CategoryResponse;
+import com.saurabh.ExpenseTracker.dto.ExpenseResponse;
 import com.saurabh.ExpenseTracker.service.CategoryService;
+import com.saurabh.ExpenseTracker.service.ExpenseService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -14,9 +16,14 @@ import java.util.List;
 public class CategoryController {
 
     private final CategoryService categoryService;
+    private final ExpenseService expenseService;
 
-    public CategoryController(CategoryService categoryService) {
+    public CategoryController(
+            CategoryService categoryService,
+            ExpenseService expenseService) {
+
         this.categoryService = categoryService;
+        this.expenseService = expenseService;
     }
 
     @PostMapping
@@ -53,5 +60,12 @@ public class CategoryController {
     public void deleteCategory(@PathVariable Long id) {
 
         categoryService.deleteCategory(id);
+    }
+
+    @GetMapping("/{categoryId}/expenses")
+    public List<ExpenseResponse> getExpensesByCategory(
+            @PathVariable Long categoryId) {
+
+        return expenseService.getExpensesByCategory(categoryId);
     }
 }

@@ -112,4 +112,15 @@ public class ExpenseService {
                 expense.getCategory().getName()
         );
     }
+
+    public List<ExpenseResponse> getExpensesByCategory(Long categoryId) {
+
+        // First check whether category exists
+        findCategoryById(categoryId);
+
+        return expenseRepository.findByCategoryId(categoryId)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
 }
