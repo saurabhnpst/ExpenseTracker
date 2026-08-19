@@ -1,8 +1,110 @@
+import { useEffect, useState } from "react"
+
 import Sidebar from "../components/Sidebar"
 import Topbar from "../components/Topbar"
 import StatCard from "../components/StatCard"
 
+import { getExpenses } from "../services/expenseService"
+import {
+  getCategories,
+  getMonthlySummary,
+} from "../services/categoryService"
+
+import type { Expense } from "../types/expense"
+
 function Dashboard() {
+  const [totalExpenses, setTotalExpenses] = useState(0)
+  const [categoryCount, setCategoryCount] = useState(0)
+  const [recentExpenses, setRecentExpenses] = useState<Expense[]>([])
+
+  const [monthlySpent, setMonthlySpent] = useState(0)
+  const [monthlyBudget, setMonthlyBudget] = useState(0)
+  const [budgetPercentage, setBudgetPercentage] = useState(0)
+
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      try {
+        setLoading(true)
+        setError("")
+
+        // Get expenses and categories
+        const [expenseData, categories] = await Promise.all([
+          getExpenses(0, 10),
+          getCategories(),
+        ])
+
+        // Recent expenses
+        setRecentExpenses(
+          expenseData.content.slice(0, 3)
+        )
+
+        // Number of categories
+        setCategoryCount(categories.length)
+
+        // Current month in YYYY-MM format
+        const currentMonth = new Date()
+          .toISOString()
+          .slice(0, 7)
+
+        // Get monthly summary for every category
+        const summaries = await Promise.all(
+          categories.map((category) =>
+            getMonthlySummary(
+              category.id,
+              currentMonth
+            )
+          )
+        )
+
+        // Calculate total monthly spending
+        const totalMonthlySpent = summaries.reduce(
+          (sum, summary) =>
+            sum + Number(summary.monthlyTotal),
+          0
+        )
+
+        // Calculate total monthly budget
+        const totalMonthlyBudget = summaries.reduce(
+          (sum, summary) =>
+            sum + Number(summary.budgetLimit),
+          0
+        )
+
+        setTotalExpenses(totalMonthlySpent)
+        setMonthlySpent(totalMonthlySpent)
+        setMonthlyBudget(totalMonthlyBudget)
+
+        // Calculate budget usage percentage
+        const percentage =
+          totalMonthlyBudget > 0
+            ? (totalMonthlySpent / totalMonthlyBudget) * 100
+            : 0
+
+        setBudgetPercentage(
+          Math.min(Math.round(percentage), 100)
+        )
+
+      } catch (error) {
+        console.error(
+          "Failed to load dashboard data:",
+          error
+        )
+
+        setError(
+          "Unable to load dashboard data."
+        )
+
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadDashboardData()
+  }, [])
+
   return (
     <div className="min-h-screen bg-slate-100 flex">
 
@@ -25,33 +127,51 @@ function Dashboard() {
             </p>
           </div>
 
+          {/* Loading */}
+          {loading && (
+            <div className="mb-6 bg-white rounded-2xl border border-slate-200 p-5">
+              <p className="text-sm text-slate-500">
+                Loading your financial data...
+              </p>
+            </div>
+          )}
+
+          {/* Error */}
+          {error && (
+            <div className="mb-6 bg-red-50 border border-red-200 rounded-2xl p-5">
+              <p className="text-sm text-red-600">
+                {error}
+              </p>
+            </div>
+          )}
+
           {/* Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
 
             <StatCard
               title="Total Expenses"
-              value="₹25,450"
+              value={`₹${totalExpenses.toLocaleString("en-IN")}`}
               description="This month"
             />
 
             <StatCard
               title="Monthly Budget"
-              value="₹30,000"
+              value={`₹${monthlyBudget.toLocaleString("en-IN")}`}
               description="Current budget"
             />
 
             <StatCard
               title="Categories"
-              value="6"
+              value={categoryCount.toString()}
               description="Active categories"
             />
 
           </div>
 
-          {/* Main content */}
+          {/* Main Content */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mt-6">
 
-            {/* Chart placeholder */}
+            {/* Monthly Spending */}
             <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
 
               <div className="flex items-center justify-between mb-6">
@@ -73,14 +193,16 @@ function Dashboard() {
               </div>
 
               <div className="h-64 rounded-xl bg-slate-50 flex items-center justify-center">
+
                 <p className="text-sm text-slate-400">
                   Spending chart will appear here
                 </p>
+
               </div>
 
             </div>
 
-            {/* Budget */}
+            {/* Budget Overview */}
             <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
 
               <h2 className="font-semibold text-slate-900">
@@ -94,27 +216,38 @@ function Dashboard() {
               <div className="mt-8">
 
                 <div className="flex justify-between text-sm mb-2">
+
                   <span className="text-slate-500">
                     Used
                   </span>
 
                   <span className="font-semibold text-slate-900">
-                    85%
+                    {budgetPercentage}%
                   </span>
+
                 </div>
 
                 <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full w-[85%] bg-indigo-600 rounded-full" />
+
+                  <div
+                    className="h-full bg-indigo-600 rounded-full transition-all duration-500"
+                    style={{
+                      width: `${budgetPercentage}%`,
+                    }}
+                  />
+
                 </div>
 
                 <div className="flex justify-between mt-3 text-sm">
+
                   <span className="text-slate-500">
-                    ₹25,450 spent
+                    ₹{monthlySpent.toLocaleString("en-IN")} spent
                   </span>
 
                   <span className="text-slate-500">
-                    ₹30,000
+                    ₹{monthlyBudget.toLocaleString("en-IN")}
                   </span>
+
                 </div>
 
               </div>
@@ -140,53 +273,54 @@ function Dashboard() {
 
             <div className="divide-y divide-slate-100">
 
-              <div className="p-5 flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-slate-900">
-                    Dinner
-                  </p>
+              {loading ? (
 
-                  <p className="text-sm text-slate-500">
-                    Food • 19 Aug 2026
+                <div className="p-6 text-center">
+                  <p className="text-sm text-slate-400">
+                    Loading expenses...
                   </p>
                 </div>
 
-                <p className="font-semibold text-slate-900">
-                  ₹500
-                </p>
-              </div>
+              ) : recentExpenses.length === 0 ? (
 
-              <div className="p-5 flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-slate-900">
-                    Uber
-                  </p>
-
-                  <p className="text-sm text-slate-500">
-                    Travel • 18 Aug 2026
+                <div className="p-6 text-center">
+                  <p className="text-sm text-slate-400">
+                    No expenses found.
                   </p>
                 </div>
 
-                <p className="font-semibold text-slate-900">
-                  ₹300
-                </p>
-              </div>
+              ) : (
 
-              <div className="p-5 flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-slate-900">
-                    Movie
-                  </p>
+                recentExpenses.map((expense) => (
 
-                  <p className="text-sm text-slate-500">
-                    Entertainment • 17 Aug 2026
-                  </p>
-                </div>
+                  <div
+                    key={expense.id}
+                    className="p-5 flex items-center justify-between"
+                  >
 
-                <p className="font-semibold text-slate-900">
-                  ₹450
-                </p>
-              </div>
+                    <div>
+
+                      <p className="font-medium text-slate-900">
+                        {expense.description || "Expense"}
+                      </p>
+
+                      <p className="text-sm text-slate-500">
+                        {expense.categoryName || "Uncategorized"}
+                        {" • "}
+                        {expense.date}
+                      </p>
+
+                    </div>
+
+                    <p className="font-semibold text-slate-900">
+                      ₹{Math.abs(expense.amount).toLocaleString("en-IN")}
+                    </p>
+
+                  </div>
+
+                ))
+
+              )}
 
             </div>
 
