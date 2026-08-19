@@ -6,7 +6,8 @@ import com.saurabh.ExpenseTracker.service.ExpenseService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import java.util.List;
 
 @RestController
@@ -27,10 +28,16 @@ public class ExpenseController {
         return expenseService.createExpense(request);
     }
 
+//    @GetMapping
+//    public List<ExpenseResponse> getAllExpenses() {
+//
+//        return expenseService.getAllExpenses();
+//    }
     @GetMapping
-    public List<ExpenseResponse> getAllExpenses() {
+    public Page<ExpenseResponse> getAllExpenses(
+        Pageable pageable) {
 
-        return expenseService.getAllExpenses();
+      return expenseService.getAllExpenses(pageable);
     }
 
     @GetMapping("/{id}")

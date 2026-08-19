@@ -8,6 +8,8 @@ import com.saurabh.ExpenseTracker.exception.ResourceNotFoundException;
 import com.saurabh.ExpenseTracker.repository.CategoryRepository;
 import com.saurabh.ExpenseTracker.repository.ExpenseRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -41,12 +43,18 @@ public class ExpenseService {
         return mapToResponse(savedExpense);
     }
 
-    public List<ExpenseResponse> getAllExpenses() {
+//    public List<ExpenseResponse> getAllExpenses() {
+//
+//        return expenseRepository.findAll()
+//                .stream()
+//                .map(this::mapToResponse)
+//                .toList();
+//    }
 
-        return expenseRepository.findAll()
-                .stream()
-                .map(this::mapToResponse)
-                .toList();
+    public Page<ExpenseResponse> getAllExpenses(Pageable pageable) {
+
+        return expenseRepository.findAll(pageable)
+                .map(this::mapToResponse);
     }
 
     public ExpenseResponse getExpenseById(Long id) {
