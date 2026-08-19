@@ -51,10 +51,27 @@ public class ExpenseService {
 //                .toList();
 //    }
 
-    public Page<ExpenseResponse> getAllExpenses(Pageable pageable) {
+    public Page<ExpenseResponse> getAllExpenses(
+            Long categoryId,
+            Pageable pageable) {
 
-        return expenseRepository.findAll(pageable)
-                .map(this::mapToResponse);
+        Page<Expense> expenses;
+
+        if (categoryId != null) {
+
+            // Check category exists
+            findCategoryById(categoryId);
+
+            expenses = expenseRepository
+                    .findByCategoryId(categoryId, pageable);
+
+        } else {
+
+            expenses = expenseRepository
+                    .findAll(pageable);
+        }
+
+        return expenses.map(this::mapToResponse);
     }
 
     public ExpenseResponse getExpenseById(Long id) {

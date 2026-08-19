@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.bind.annotation.RequestParam;
 import java.util.List;
 
 @RestController
@@ -33,12 +34,16 @@ public class ExpenseController {
 //
 //        return expenseService.getAllExpenses();
 //    }
-    @GetMapping
-    public Page<ExpenseResponse> getAllExpenses(
+@GetMapping
+public Page<ExpenseResponse> getAllExpenses(
+        @RequestParam(required = false) Long categoryId,
         Pageable pageable) {
 
-      return expenseService.getAllExpenses(pageable);
-    }
+    return expenseService.getAllExpenses(
+            categoryId,
+            pageable
+    );
+}
 
     @GetMapping("/{id}")
     public ExpenseResponse getExpenseById(
