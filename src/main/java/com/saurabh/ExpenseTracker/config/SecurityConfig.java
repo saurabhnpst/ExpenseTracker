@@ -1,15 +1,24 @@
 package com.saurabh.ExpenseTracker.config;
 
+import com.saurabh.ExpenseTracker.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 public class SecurityConfig {
+
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -23,13 +32,20 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
 
+                // JWT is stateless
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(
+                                SessionCreationPolicy.STATELESS
+                        )
+                )
+
                 .authorizeHttpRequests(auth -> auth
 
-                        // Register and Login - Public
+                        // Register + Login are public
                         .requestMatchers("/api/auth/**")
                         .permitAll()
 
-                        // GET requests - Public
+                        // GET APIs are public
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/categories",
@@ -39,7 +55,7 @@ public class SecurityConfig {
                         )
                         .permitAll()
 
-                        // POST/PUT/DELETE - Authentication required
+                        // Write APIs require authentication
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/categories/**",
@@ -61,11 +77,17 @@ public class SecurityConfig {
                         )
                         .authenticated()
 
-                        // Everything else
                         .anyRequest()
                         .authenticated()
                 )
 
+                // Add JWT filter before Spring's username/password filter
+                .addFilterBefore(
+                        jwtAuthenticationFilter,
+                        UsernamePasswordAuthenticationFilter.class
+                )
+
+                //  using JWT, not browser login
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable());
 
