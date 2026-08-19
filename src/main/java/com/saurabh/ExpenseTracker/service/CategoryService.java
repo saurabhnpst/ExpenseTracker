@@ -6,6 +6,12 @@ import com.saurabh.ExpenseTracker.entity.Category;
 import com.saurabh.ExpenseTracker.exception.ResourceNotFoundException;
 import com.saurabh.ExpenseTracker.repository.CategoryRepository;
 import org.springframework.stereotype.Service;
+import com.saurabh.ExpenseTracker.dto.MonthlySummaryResponse;
+import com.saurabh.ExpenseTracker.repository.ExpenseRepository;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.YearMonth;
 
 import java.util.List;
 
@@ -13,9 +19,14 @@ import java.util.List;
 public class CategoryService {
 
     private final CategoryRepository categoryRepository;
+    private final ExpenseRepository expenseRepository;
 
-    public CategoryService(CategoryRepository categoryRepository) {
+    public CategoryService(
+            CategoryRepository categoryRepository,
+            ExpenseRepository expenseRepository) {
+
         this.categoryRepository = categoryRepository;
+        this.expenseRepository = expenseRepository;
     }
 
     public CategoryResponse createCategory(CategoryRequest request) {
@@ -82,6 +93,35 @@ public class CategoryService {
                 category.getId(),
                 category.getName(),
                 category.getBudgetLimit()
+        );
+    }
+
+    public MonthlySummaryResponse getMonthlySummary(
+            Long categoryId,
+            YearMonth month) {
+
+        Category category = findCategoryById(categoryId);
+
+        LocalDate startDate = month.atDay(1);
+        LocalDate endDate = month.plusMonths(1).atDay(1);
+
+        BigDecimal monthlyTotal =
+                expenseRepository.calculateMonthlyTotal(
+                        categoryId,
+                        startDate,
+                        endDate
+                );
+
+        boolean budgetExceeded =
+                monthlyTotal.compareTo(category.getBudgetLimit()) > 0;
+
+        return new MonthlySummaryResponse(
+                category.getId(),
+                category.getName(),
+                month.toString(),
+                monthlyTotal,
+                category.getBudgetLimit(),
+                budgetExceeded
         );
     }
 }

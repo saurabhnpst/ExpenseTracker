@@ -8,6 +8,8 @@ import com.saurabh.ExpenseTracker.service.ExpenseService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import com.saurabh.ExpenseTracker.dto.MonthlySummaryResponse;
+import java.time.YearMonth;
 
 import java.util.List;
 
@@ -67,5 +69,18 @@ public class CategoryController {
             @PathVariable Long categoryId) {
 
         return expenseService.getExpensesByCategory(categoryId);
+    }
+
+    @GetMapping("/{categoryId}/monthly-summary")
+    public MonthlySummaryResponse getMonthlySummary(
+            @PathVariable Long categoryId,
+            @RequestParam String month) {
+
+        YearMonth yearMonth = YearMonth.parse(month);
+
+        return categoryService.getMonthlySummary(
+                categoryId,
+                yearMonth
+        );
     }
 }
