@@ -12,6 +12,16 @@ import {
 
 import type { Expense } from "../types/expense"
 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts"
+
 function Dashboard() {
   const [totalExpenses, setTotalExpenses] = useState(0)
   const [categoryCount, setCategoryCount] = useState(0)
@@ -21,20 +31,37 @@ function Dashboard() {
   const [monthlyBudget, setMonthlyBudget] = useState(0)
   const [budgetPercentage, setBudgetPercentage] = useState(0)
 
+  const [selectedYear, setSelectedYear] = useState(
+    new Date().getFullYear()
+  )
+
+  const [monthlyChartData, setMonthlyChartData] = useState<
+    { month: string; spending: number }[]
+  >([])
+
+  const [categories, setCategories] = useState<
+    { id: number }[]
+  >([])
+
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
+  // ----------------------------------------
+  // Dashboard data
+  // ----------------------------------------
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
         setLoading(true)
         setError("")
 
-        // Get expenses and categories
         const [expenseData, categories] = await Promise.all([
           getExpenses(0, 10),
           getCategories(),
         ])
+
+        // Save categories for monthly chart
+        setCategories(categories)
 
         // Recent expenses
         setRecentExpenses(
@@ -86,7 +113,6 @@ function Dashboard() {
         setBudgetPercentage(
           Math.min(Math.round(percentage), 100)
         )
-
       } catch (error) {
         console.error(
           "Failed to load dashboard data:",
@@ -96,7 +122,6 @@ function Dashboard() {
         setError(
           "Unable to load dashboard data."
         )
-
       } finally {
         setLoading(false)
       }
@@ -104,6 +129,72 @@ function Dashboard() {
 
     loadDashboardData()
   }, [])
+
+  // ----------------------------------------
+  // Monthly spending chart
+  // ----------------------------------------
+  useEffect(() => {
+    const loadMonthlyChart = async () => {
+      if (categories.length === 0) {
+        setMonthlyChartData([])
+        return
+      }
+
+      try {
+        const months = [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+        ]
+
+        const chartData = await Promise.all(
+          months.map(async (monthName, index) => {
+            const month = `${selectedYear}-${String(
+              index + 1
+            ).padStart(2, "0")}`
+
+            const summaries = await Promise.all(
+              categories.map((category) =>
+                getMonthlySummary(
+                  category.id,
+                  month
+                )
+              )
+            )
+
+            const spending = summaries.reduce(
+              (sum, summary) =>
+                sum + Number(summary.monthlyTotal),
+              0
+            )
+
+            return {
+              month: monthName,
+              spending,
+            }
+          })
+        )
+
+        setMonthlyChartData(chartData)
+      } catch (error) {
+        console.error(
+          "Failed to load monthly chart:",
+          error
+        )
+      }
+    }
+
+    loadMonthlyChart()
+  }, [selectedYear, categories])
 
   return (
     <div className="min-h-screen bg-slate-100 flex">
@@ -150,13 +241,17 @@ function Dashboard() {
 
             <StatCard
               title="Total Expenses"
-              value={`₹${totalExpenses.toLocaleString("en-IN")}`}
+              value={`₹${totalExpenses.toLocaleString(
+                "en-IN"
+              )}`}
               description="This month"
             />
 
             <StatCard
               title="Monthly Budget"
-              value={`₹${monthlyBudget.toLocaleString("en-IN")}`}
+              value={`₹${monthlyBudget.toLocaleString(
+                "en-IN"
+              )}`}
               description="Current budget"
             />
 
@@ -186,17 +281,94 @@ function Dashboard() {
                   </p>
                 </div>
 
-                <select className="border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-600 outline-none">
-                  <option>2026</option>
+                {/* Year selector */}
+                <select
+                  value={selectedYear}
+                  onChange={(e) =>
+                    setSelectedYear(
+                      Number(e.target.value)
+                    )
+                  }
+                  className="border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-600 outline-none"
+                >
+                  <option value={2026}>
+                    2026
+                  </option>
+
+                  <option value={2025}>
+                    2025
+                  </option>
+
+                  <option value={2024}>
+                    2024
+                  </option>
                 </select>
 
               </div>
 
-              <div className="h-64 rounded-xl bg-slate-50 flex items-center justify-center">
+              {/* Chart */}
+              <div className="h-64 rounded-xl bg-slate-50 p-4">
 
-                <p className="text-sm text-slate-400">
-                  Spending chart will appear here
-                </p>
+                {monthlyChartData.length === 0 ? (
+
+                  <div className="h-full flex items-center justify-center">
+                    <p className="text-sm text-slate-400">
+                      No spending data available.
+                    </p>
+                  </div>
+
+                ) : (
+
+                  <ResponsiveContainer
+                    width="100%"
+                    height="100%"
+                  >
+                    <BarChart
+                      data={monthlyChartData}
+                    >
+
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        vertical={false}
+                      />
+
+                      <XAxis
+                        dataKey="month"
+                        tickLine={false}
+                        axisLine={false}
+                      />
+
+                      <YAxis
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(value) =>
+                          `₹${value}`
+                        }
+                      />
+
+                      <Tooltip
+                        formatter={(value) =>
+                          `₹${Number(
+                            value
+                          ).toLocaleString("en-IN")}`
+                        }
+                      />
+
+                      <Bar
+                        dataKey="spending"
+                        fill="#4f46e5"
+                        radius={[
+                          6,
+                          6,
+                          0,
+                          0,
+                        ]}
+                      />
+
+                    </BarChart>
+                  </ResponsiveContainer>
+
+                )}
 
               </div>
 
@@ -241,11 +413,16 @@ function Dashboard() {
                 <div className="flex justify-between mt-3 text-sm">
 
                   <span className="text-slate-500">
-                    ₹{monthlySpent.toLocaleString("en-IN")} spent
+                    ₹{monthlySpent.toLocaleString(
+                      "en-IN"
+                    )}{" "}
+                    spent
                   </span>
 
                   <span className="text-slate-500">
-                    ₹{monthlyBudget.toLocaleString("en-IN")}
+                    ₹{monthlyBudget.toLocaleString(
+                      "en-IN"
+                    )}
                   </span>
 
                 </div>
@@ -301,11 +478,13 @@ function Dashboard() {
                     <div>
 
                       <p className="font-medium text-slate-900">
-                        {expense.description || "Expense"}
+                        {expense.description ||
+                          "Expense"}
                       </p>
 
                       <p className="text-sm text-slate-500">
-                        {expense.categoryName || "Uncategorized"}
+                        {expense.categoryName ||
+                          "Uncategorized"}
                         {" • "}
                         {expense.date}
                       </p>
@@ -313,7 +492,12 @@ function Dashboard() {
                     </div>
 
                     <p className="font-semibold text-slate-900">
-                      ₹{Math.abs(expense.amount).toLocaleString("en-IN")}
+                      ₹
+                      {Math.abs(
+                        expense.amount
+                      ).toLocaleString(
+                        "en-IN"
+                      )}
                     </p>
 
                   </div>
