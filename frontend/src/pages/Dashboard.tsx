@@ -22,6 +22,24 @@ import {
   ResponsiveContainer,
 } from "recharts"
 
+function getCurrentUsername(): string {
+  const token = localStorage.getItem("token")
+
+  if (!token) {
+    return "User"
+  }
+
+  try {
+    const payload = JSON.parse(
+      atob(token.split(".")[1])
+    )
+
+    return payload.sub || "User"
+  } catch {
+    return "User"
+  }
+}
+
 function Dashboard() {
   const [totalExpenses, setTotalExpenses] = useState(0)
   const [categoryCount, setCategoryCount] = useState(0)
@@ -46,9 +64,12 @@ function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
+  const username = getCurrentUsername()
+
   // ----------------------------------------
   // Dashboard data
   // ----------------------------------------
+
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
@@ -60,23 +81,18 @@ function Dashboard() {
           getCategories(),
         ])
 
-        // Save categories for monthly chart
         setCategories(categories)
 
-        // Recent expenses
         setRecentExpenses(
           expenseData.content.slice(0, 3)
         )
 
-        // Number of categories
         setCategoryCount(categories.length)
 
-        // Current month in YYYY-MM format
         const currentMonth = new Date()
           .toISOString()
           .slice(0, 7)
 
-        // Get monthly summary for every category
         const summaries = await Promise.all(
           categories.map((category) =>
             getMonthlySummary(
@@ -86,14 +102,12 @@ function Dashboard() {
           )
         )
 
-        // Calculate total monthly spending
         const totalMonthlySpent = summaries.reduce(
           (sum, summary) =>
             sum + Number(summary.monthlyTotal),
           0
         )
 
-        // Calculate total monthly budget
         const totalMonthlyBudget = summaries.reduce(
           (sum, summary) =>
             sum + Number(summary.budgetLimit),
@@ -104,7 +118,6 @@ function Dashboard() {
         setMonthlySpent(totalMonthlySpent)
         setMonthlyBudget(totalMonthlyBudget)
 
-        // Calculate budget usage percentage
         const percentage =
           totalMonthlyBudget > 0
             ? (totalMonthlySpent / totalMonthlyBudget) * 100
@@ -113,6 +126,7 @@ function Dashboard() {
         setBudgetPercentage(
           Math.min(Math.round(percentage), 100)
         )
+
       } catch (error) {
         console.error(
           "Failed to load dashboard data:",
@@ -122,6 +136,7 @@ function Dashboard() {
         setError(
           "Unable to load dashboard data."
         )
+
       } finally {
         setLoading(false)
       }
@@ -133,6 +148,7 @@ function Dashboard() {
   // ----------------------------------------
   // Monthly spending chart
   // ----------------------------------------
+
   useEffect(() => {
     const loadMonthlyChart = async () => {
       if (categories.length === 0) {
@@ -158,6 +174,7 @@ function Dashboard() {
 
         const chartData = await Promise.all(
           months.map(async (monthName, index) => {
+
             const month = `${selectedYear}-${String(
               index + 1
             ).padStart(2, "0")}`
@@ -185,6 +202,7 @@ function Dashboard() {
         )
 
         setMonthlyChartData(chartData)
+
       } catch (error) {
         console.error(
           "Failed to load monthly chart:",
@@ -209,13 +227,15 @@ function Dashboard() {
 
           {/* Welcome */}
           <div className="mb-8">
+
             <h1 className="text-2xl font-bold text-slate-900">
-              Good evening, Saurabh 👋
+              Good evening, {username} 👋
             </h1>
 
             <p className="mt-1 text-slate-500">
               Here's what's happening with your finances.
             </p>
+
           </div>
 
           {/* Loading */}
@@ -281,7 +301,6 @@ function Dashboard() {
                   </p>
                 </div>
 
-                {/* Year selector */}
                 <select
                   value={selectedYear}
                   onChange={(e) =>
