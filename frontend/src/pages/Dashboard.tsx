@@ -11,6 +11,7 @@ import {
 } from "../services/categoryService"
 
 import type { Expense } from "../types/expense"
+import type { MonthlySummary } from "../services/categoryService"
 
 import {
   BarChart,
@@ -48,6 +49,10 @@ function Dashboard() {
   const [monthlySpent, setMonthlySpent] = useState(0)
   const [monthlyBudget, setMonthlyBudget] = useState(0)
   const [budgetPercentage, setBudgetPercentage] = useState(0)
+
+  const [categorySummaries, setCategorySummaries] = useState<
+    MonthlySummary[]
+  >([])
 
   const [selectedYear, setSelectedYear] = useState(
     new Date().getFullYear()
@@ -102,6 +107,9 @@ function Dashboard() {
           )
         )
 
+        // Store category-wise monthly summaries
+        setCategorySummaries(summaries)
+
         const totalMonthlySpent = summaries.reduce(
           (sum, summary) =>
             sum + Number(summary.monthlyTotal),
@@ -124,7 +132,7 @@ function Dashboard() {
             : 0
 
         setBudgetPercentage(
-          Math.min(Math.round(percentage), 100)
+          Math.round(percentage)
         )
 
       } catch (error) {
@@ -136,7 +144,6 @@ function Dashboard() {
         setError(
           "Unable to load dashboard data."
         )
-
       } finally {
         setLoading(false)
       }
@@ -412,7 +419,13 @@ function Dashboard() {
                     Used
                   </span>
 
-                  <span className="font-semibold text-slate-900">
+                  <span
+                    className={`font-semibold ${
+                      budgetPercentage > 100
+                        ? "text-red-600"
+                        : "text-slate-900"
+                    }`}
+                  >
                     {budgetPercentage}%
                   </span>
 
@@ -421,9 +434,16 @@ function Dashboard() {
                 <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
 
                   <div
-                    className="h-full bg-indigo-600 rounded-full transition-all duration-500"
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      budgetPercentage > 100
+                        ? "bg-red-500"
+                        : "bg-indigo-600"
+                    }`}
                     style={{
-                      width: `${budgetPercentage}%`,
+                      width: `${Math.min(
+                        budgetPercentage,
+                        100
+                      )}%`,
                     }}
                   />
 
@@ -449,6 +469,78 @@ function Dashboard() {
               </div>
 
             </div>
+
+          </div>
+
+          {/* Category Budget Status */}
+          <div className="mt-6 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+
+            <h2 className="font-semibold text-slate-900">
+              Category Budget Status
+            </h2>
+
+            <p className="text-sm text-slate-500 mt-1">
+              Monthly budget status by category
+            </p>
+
+            {categorySummaries.length === 0 ? (
+
+              <div className="mt-5">
+                <p className="text-sm text-slate-400">
+                  No category budget data available.
+                </p>
+              </div>
+
+            ) : (
+
+              <div className="mt-5 space-y-4">
+
+                {categorySummaries.map((summary) => (
+
+                  <div
+                    key={summary.categoryId}
+                    className="flex items-center justify-between border-b border-slate-100 pb-4 last:border-b-0 last:pb-0"
+                  >
+
+                    <div>
+
+                      <p className="font-medium text-slate-900">
+                        {summary.categoryName}
+                      </p>
+
+                      <p className="text-sm text-slate-500 mt-1">
+                        ₹{Number(
+                          summary.monthlyTotal
+                        ).toLocaleString("en-IN")}
+                        {" / "}
+                        ₹{Number(
+                          summary.budgetLimit
+                        ).toLocaleString("en-IN")}
+                      </p>
+
+                    </div>
+
+                    {summary.budgetExceeded ? (
+
+                      <span className="text-sm font-semibold text-red-600">
+                        ⚠ Budget Exceeded
+                      </span>
+
+                    ) : (
+
+                      <span className="text-sm font-semibold text-green-600">
+                        ✓ Within Budget
+                      </span>
+
+                    )}
+
+                  </div>
+
+                ))}
+
+              </div>
+
+            )}
 
           </div>
 
