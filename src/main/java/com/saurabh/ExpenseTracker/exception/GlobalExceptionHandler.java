@@ -13,6 +13,7 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    // 404 - Resource not found
     @ExceptionHandler(ResourceNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public Map<String, Object> handleResourceNotFound(
@@ -26,6 +27,7 @@ public class GlobalExceptionHandler {
         );
     }
 
+    // 400 - Validation failed
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, Object> handleValidationException(
@@ -51,9 +53,39 @@ public class GlobalExceptionHandler {
         );
     }
 
+    // 400 - Invalid request / business rule
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Map<String, Object> handleIllegalArgument(
+            IllegalArgumentException ex) {
+
+        return Map.of(
+                "timestamp", LocalDateTime.now(),
+                "status", 400,
+                "error", "BAD_REQUEST",
+                "message", ex.getMessage()
+        );
+    }
+
+    // 409 - Conflict
+    @ExceptionHandler(IllegalStateException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public Map<String, Object> handleIllegalState(
+            IllegalStateException ex) {
+
+        return Map.of(
+                "timestamp", LocalDateTime.now(),
+                "status", 409,
+                "error", "CONFLICT",
+                "message", ex.getMessage()
+        );
+    }
+
+    // 500 - Unexpected error
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public Map<String, Object> handleGenericException(Exception ex) {
+    public Map<String, Object> handleGenericException(
+            Exception ex) {
 
         return Map.of(
                 "timestamp", LocalDateTime.now(),
