@@ -1,9 +1,13 @@
 package com.saurabh.ExpenseTracker.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Table(name = "users")
+@Getter
+@Setter
 public class User {
 
     @Id
@@ -13,8 +17,15 @@ public class User {
     @Column(nullable = false, unique = true)
     private String username;
 
-    @Column(nullable = false)
+    // Nullable for Google users
     private String password;
+
+    @Column(unique = true)
+    private String email;
+
+    private String provider;
+
+    private String providerId;
 
     @Column(nullable = false)
     private String role = "USER";
@@ -22,41 +33,26 @@ public class User {
     public User() {
     }
 
+    // Local registration
     public User(String username, String password, String role) {
         this.username = username;
         this.password = password;
         this.role = role;
+        this.provider = "LOCAL";
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public String getRole() {
-        return role;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public void setUsername(String username) {
+    // Google registration
+    public User(
+            String username,
+            String email,
+            String provider,
+            String providerId,
+            String role
+    ) {
         this.username = username;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public void setRole(String role) {
+        this.email = email;
+        this.provider = provider;
+        this.providerId = providerId;
         this.role = role;
     }
 }

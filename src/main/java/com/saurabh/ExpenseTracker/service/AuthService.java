@@ -4,6 +4,7 @@ import com.saurabh.ExpenseTracker.dto.AuthResponse;
 import com.saurabh.ExpenseTracker.dto.RegisterRequest;
 import com.saurabh.ExpenseTracker.entity.User;
 import com.saurabh.ExpenseTracker.repository.UserRepository;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -12,14 +13,13 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-
     private final JwtService jwtService;
 
     public AuthService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
-            JwtService jwtService) {
-
+            JwtService jwtService
+    ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
@@ -28,9 +28,7 @@ public class AuthService {
     public AuthResponse register(RegisterRequest request) {
 
         if (userRepository.existsByUsername(request.getUsername())) {
-            throw new IllegalArgumentException(
-                    "Username already exists"
-            );
+            throw new RuntimeException("Username already exists");
         }
 
         String hashedPassword =
@@ -42,11 +40,15 @@ public class AuthService {
                 "USER"
         );
 
-        User savedUser = userRepository.save(user);
+        userRepository.save(user);
+
+        // Generate JWT immediately after registration
+        String token = jwtService.generateToken(user.getUsername());
 
         return new AuthResponse(
-                savedUser.getId(),
-                savedUser.getUsername(),
+                token,
+                user.getId(),
+                user.getUsername(),
                 "User registered successfully"
         );
     }
@@ -55,11 +57,15 @@ public class AuthService {
 
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() ->
-                        new RuntimeException("Invalid username or password")
+                        new IllegalArgumentException(
+                                "Invalid username or password"
+                        )
                 );
 
         if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new RuntimeException("Invalid username or password");
+            throw new IllegalArgumentException(
+                    "Invalid username or password"
+            );
         }
 
         return jwtService.generateToken(user.getUsername());

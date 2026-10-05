@@ -1,6 +1,8 @@
 package com.saurabh.ExpenseTracker.config;
 
 import com.saurabh.ExpenseTracker.security.JwtAuthenticationFilter;
+import com.saurabh.ExpenseTracker.security.OAuth2SuccessHandler;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -21,9 +23,14 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final OAuth2SuccessHandler oAuth2SuccessHandler;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig(
+            JwtAuthenticationFilter jwtAuthenticationFilter,
+            OAuth2SuccessHandler oAuth2SuccessHandler
+    ) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.oAuth2SuccessHandler = oAuth2SuccessHandler;
     }
 
     @Bean
@@ -33,26 +40,36 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(
-            HttpSecurity http) throws Exception {
+            HttpSecurity http
+    ) throws Exception {
 
         http
                 .csrf(csrf -> csrf.disable())
+
                 .cors(cors -> {})
 
-                // JWT is stateless
+                // OAuth2 needs a session during the Google login handshake.
+                // JWT is still used for API authentication.
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(
-                                SessionCreationPolicy.STATELESS
+                                SessionCreationPolicy.IF_REQUIRED
                         )
                 )
 
                 .authorizeHttpRequests(auth -> auth
 
-                        // Register + Login are public
+                        // Register + Login
                         .requestMatchers("/api/auth/**")
                         .permitAll()
 
-                        // GET APIs are public
+                        // OAuth2 endpoints
+                        .requestMatchers(
+                                "/oauth2/**",
+                                "/login/oauth2/**"
+                        )
+                        .permitAll()
+
+                        // GET APIs
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/categories",
@@ -62,7 +79,7 @@ public class SecurityConfig {
                         )
                         .permitAll()
 
-                        // Write APIs require authentication
+                        // POST APIs
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/categories/**",
@@ -70,6 +87,7 @@ public class SecurityConfig {
                         )
                         .authenticated()
 
+                        // PUT APIs
                         .requestMatchers(
                                 HttpMethod.PUT,
                                 "/api/categories/**",
@@ -77,6 +95,7 @@ public class SecurityConfig {
                         )
                         .authenticated()
 
+                        // DELETE APIs
                         .requestMatchers(
                                 HttpMethod.DELETE,
                                 "/api/categories/**",
@@ -84,19 +103,27 @@ public class SecurityConfig {
                         )
                         .authenticated()
 
+                        // Everything else requires authentication
                         .anyRequest()
                         .authenticated()
                 )
 
-                // Add JWT filter before Spring's username/password filter
+                // JWT authentication filter
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class
                 )
 
-                //  using JWT, not browser login
+                // Disable normal form login
                 .formLogin(form -> form.disable())
-                .httpBasic(basic -> basic.disable());
+
+                // Disable Basic Authentication
+                .httpBasic(basic -> basic.disable())
+
+                // Google OAuth2 Login
+                .oauth2Login(oauth2 ->
+                        oauth2.successHandler(oAuth2SuccessHandler)
+                );
 
         return http.build();
     }
@@ -104,7 +131,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
 
-        CorsConfiguration configuration = new CorsConfiguration();
+        CorsConfiguration configuration =
+                new CorsConfiguration();
 
         configuration.setAllowedOrigins(
                 List.of("http://localhost:5173")
