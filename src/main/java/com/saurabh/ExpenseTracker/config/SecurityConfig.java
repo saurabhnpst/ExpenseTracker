@@ -3,15 +3,17 @@ package com.saurabh.ExpenseTracker.config;
 import com.saurabh.ExpenseTracker.security.JwtAuthenticationFilter;
 import com.saurabh.ExpenseTracker.security.OAuth2SuccessHandler;
 
+import jakarta.servlet.http.HttpServletResponse;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -49,7 +51,7 @@ public class SecurityConfig {
                 .cors(cors -> {})
 
                 // OAuth2 needs a session during the Google login handshake.
-                // JWT is still used for API authentication.
+                // JWT is used for API authentication.
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(
                                 SessionCreationPolicy.IF_REQUIRED
@@ -58,7 +60,7 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
-                        // Register + Login
+                        // Authentication endpoints
                         .requestMatchers("/api/auth/**")
                         .permitAll()
 
@@ -69,43 +71,38 @@ public class SecurityConfig {
                         )
                         .permitAll()
 
-                        // GET APIs
-                        .requestMatchers(
-                                HttpMethod.GET,
-                                "/api/categories",
-                                "/api/categories/**",
-                                "/api/expenses",
-                                "/api/expenses/**"
-                        )
-                        .permitAll()
-
-                        // POST APIs
-                        .requestMatchers(
-                                HttpMethod.POST,
-                                "/api/categories/**",
-                                "/api/expenses/**"
-                        )
+                        // All application APIs require authentication
+                        .requestMatchers("/api/**")
                         .authenticated()
 
-                        // PUT APIs
-                        .requestMatchers(
-                                HttpMethod.PUT,
-                                "/api/categories/**",
-                                "/api/expenses/**"
-                        )
-                        .authenticated()
-
-                        // DELETE APIs
-                        .requestMatchers(
-                                HttpMethod.DELETE,
-                                "/api/categories/**",
-                                "/api/expenses/**"
-                        )
-                        .authenticated()
-
-                        // Everything else requires authentication
+                        // Everything else
                         .anyRequest()
                         .authenticated()
+                )
+
+                // Return 401 JSON for unauthenticated API requests
+                // instead of redirecting to Google login.
+                .exceptionHandling(exceptions ->
+                        exceptions.defaultAuthenticationEntryPointFor(
+                                (request, response, authException) -> {
+
+                                    response.setStatus(
+                                            HttpServletResponse.SC_UNAUTHORIZED
+                                    );
+
+                                    response.setContentType(
+                                            "application/json"
+                                    );
+
+                                    response.getWriter().write(
+                                            "{\"status\":401,\"error\":\"UNAUTHORIZED\",\"message\":\"Authentication required\"}"
+                                    );
+                                },
+
+                                PathPatternRequestMatcher
+                                        .withDefaults()
+                                        .matcher("/api/**")
+                        )
                 )
 
                 // JWT authentication filter
