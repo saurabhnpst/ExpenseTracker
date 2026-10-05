@@ -70,7 +70,12 @@ public class SecurityConfig {
                                 "/login/oauth2/**"
                         )
                         .permitAll()
-
+                        .requestMatchers(
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/v3/api-docs/**"
+                        )
+                        .permitAll()
                         // All application APIs require authentication
                         .requestMatchers("/api/**")
                         .authenticated()

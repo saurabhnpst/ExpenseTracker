@@ -14,7 +14,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import com.saurabh.ExpenseTracker.dto.ExpenseFilterRequest;
+import com.saurabh.ExpenseTracker.specification.ExpenseSpecification;
 
+import org.springframework.data.jpa.domain.Specification;
 import java.util.List;
 
 @Service
@@ -62,39 +65,62 @@ public class ExpenseService {
     // =========================
 
     public Page<ExpenseResponse> getAllExpenses(
-            Long categoryId,
+            ExpenseFilterRequest filter,
             Pageable pageable) {
 
         User user = getCurrentUser();
 
-        Page<Expense> expenses;
+        Specification<Expense> specification =
+                ExpenseSpecification.belongsToUser(user);
 
-        if (categoryId != null) {
-
-            // Make sure category belongs to current user
-            findCategoryById(categoryId);
-
-            expenses =
-                    expenseRepository
-                            .findByCategoryIdAndCategoryUser(
-                                    categoryId,
-                                    user,
-                                    pageable
-                            );
-
-        } else {
-
-            expenses =
-                    expenseRepository
-                            .findByCategoryUser(
-                                    user,
-                                    pageable
-                            );
+        if (filter.getCategoryId() != null) {
+            specification = specification.and(
+                    ExpenseSpecification.hasCategory(
+                            filter.getCategoryId()
+                    )
+            );
         }
+
+        if (filter.getFromDate() != null) {
+            specification = specification.and(
+                    ExpenseSpecification.dateGreaterThanOrEqualTo(
+                            filter.getFromDate()
+                    )
+            );
+        }
+
+        if (filter.getToDate() != null) {
+            specification = specification.and(
+                    ExpenseSpecification.dateLessThanOrEqualTo(
+                            filter.getToDate()
+                    )
+            );
+        }
+
+        if (filter.getMinAmount() != null) {
+            specification = specification.and(
+                    ExpenseSpecification.amountGreaterThanOrEqualTo(
+                            filter.getMinAmount()
+                    )
+            );
+        }
+
+        if (filter.getMaxAmount() != null) {
+            specification = specification.and(
+                    ExpenseSpecification.amountLessThanOrEqualTo(
+                            filter.getMaxAmount()
+                    )
+            );
+        }
+
+        Page<Expense> expenses =
+                expenseRepository.findAll(
+                        specification,
+                        pageable
+                );
 
         return expenses.map(this::mapToResponse);
     }
-
     // =========================
     // GET EXPENSE BY ID
     // =========================

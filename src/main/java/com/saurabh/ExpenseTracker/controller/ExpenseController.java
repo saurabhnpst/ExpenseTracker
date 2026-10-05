@@ -1,5 +1,6 @@
 package com.saurabh.ExpenseTracker.controller;
 
+import com.saurabh.ExpenseTracker.dto.ExpenseFilterRequest;
 import com.saurabh.ExpenseTracker.dto.ExpenseRequest;
 import com.saurabh.ExpenseTracker.dto.ExpenseResponse;
 import com.saurabh.ExpenseTracker.service.ExpenseService;
@@ -36,11 +37,11 @@ public class ExpenseController {
 //    }
 @GetMapping
 public Page<ExpenseResponse> getAllExpenses(
-        @RequestParam(required = false) Long categoryId,
+        ExpenseFilterRequest filter,
         Pageable pageable) {
 
     return expenseService.getAllExpenses(
-            categoryId,
+            filter,
             pageable
     );
 }
