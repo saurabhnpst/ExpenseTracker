@@ -9,6 +9,7 @@ import com.saurabh.ExpenseTracker.exception.ResourceNotFoundException;
 import com.saurabh.ExpenseTracker.repository.CategoryRepository;
 import com.saurabh.ExpenseTracker.repository.ExpenseRepository;
 import com.saurabh.ExpenseTracker.repository.UserRepository;
+import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -40,7 +41,7 @@ public class ExpenseService {
     // =========================
     // CREATE EXPENSE
     // =========================
-
+    @Transactional
     public ExpenseResponse createExpense(
             ExpenseRequest request) {
 
