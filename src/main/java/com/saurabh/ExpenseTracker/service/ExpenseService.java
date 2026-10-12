@@ -21,7 +21,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.saurabh.ExpenseTracker.event.ExpenseCreatedEvent;
 import java.time.YearMonth;
 import java.util.List;
 
@@ -64,10 +64,20 @@ public class ExpenseService {
 
         Expense savedExpense = expenseRepository.save(expense);
 
+//        eventPublisher.publishEvent(
+//                new MonthlySummaryInvalidationEvent(
+//                        savedExpense.getCategory().getId(),
+//                        YearMonth.from(savedExpense.getDate())
+//                )
+//        );
+
         eventPublisher.publishEvent(
-                new MonthlySummaryInvalidationEvent(
+                new ExpenseCreatedEvent(
+                        savedExpense.getId(),
                         savedExpense.getCategory().getId(),
-                        YearMonth.from(savedExpense.getDate())
+                        savedExpense.getAmount(),
+                        savedExpense.getDate(),
+                        savedExpense.getDescription()
                 )
         );
 
